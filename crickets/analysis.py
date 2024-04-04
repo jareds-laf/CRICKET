@@ -145,6 +145,7 @@ def get_exkurt(info_table, n_divs=256, threshold=50):
         exkurts_list.append(kurtosis(division/(10**9))) # Rescaling data so that excess kurtosis != inf ever (hopefully)
     
     exkurts = np.array(exkurts_list, dtype=np.float64)
+    print(f'\n\nHere is the np.abs(exkurts): {np.abs(exkurts)}\n\n')
     
     # Check to see if any of the kurtoses are infinite
     if np.any(np.isfinite(exkurts)) == False:
@@ -414,6 +415,7 @@ def plot_exkurt(info_table, n_divs=256, threshold=50,
     ax.set_xlabel('Frequency (MHz)')
     ax.set_ylabel('Excess Kurtosis')
     ax.set_title(f"Excess Kurtosis of\n{wf_name} (n_divs={n_divs}, threshold={threshold})", y=1.06)
+
 
     # Plot all data
     if unfiltered:

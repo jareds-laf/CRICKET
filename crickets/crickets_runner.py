@@ -76,7 +76,7 @@ args = parser.parse_args()
 ##### Setup logging #####
 
 # Create logger and console handler
-logger = logging.getLogger('crickets_runner')
+logger = logging.Logger('crickets_runner')
 logger.propagate = False
 ch = logging.StreamHandler()
 
@@ -128,6 +128,7 @@ if os.path.isdir(out_path):
 if (os.path.isfile(out_path)) | (out_path[-4:] == '.csv'):
 	# print("The output file is a file.")
 	output_file_loc = out_path
+	
 
 
 # info_table_list = glob.glob(os.path.join(itloc, f'info_table*.csv'))

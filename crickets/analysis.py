@@ -241,7 +241,7 @@ def write_output_table(info_table, output_filepath='./', n_divs=256, threshold=5
     info_table = normalize_path(info_table)
     info_table_read = pd.read_csv(info_table)
 
-    # Get bin tops
+    # Get bin width
     freqs = np.array(info_table_read['freq'])
     max_freq = freqs[-1]
     min_freq = freqs[0]

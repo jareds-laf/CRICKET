@@ -406,7 +406,7 @@ def plot_exkurt(info_table, n_divs=256, threshold=50,
         output_type: Filetype of output
     """
     wf_name = info_table[info_table.rfind('/')+12:-4]
-    bins, kurts, pows_mean, flagged_bins, flagged_kurts, masked_kurts, masked_freqs, bin_mask, freq_mask = get_exkurt(info_table, n_divs, threshold)
+    bins, kurts, pows_mean, s, flagged_kurts, masked_kurts, masked_freqs, bin_mask, freq_mask = get_exkurt(info_table, n_divs, threshold)
     
     # Create the plot
     fig, ax = plt.subplots()

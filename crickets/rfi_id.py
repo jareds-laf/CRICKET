@@ -86,6 +86,17 @@ def normalize_path(in_path):
     # A quick function to ensure that any input paths are properly referenced
     return os.path.normpath(os.path.realpath(os.path.expanduser(in_path)))
 
+def save_fig(filename, types=['png']):
+    """
+    Allows user to save figures as multiple file types at once
+    Credit: https://stackoverflow.com/questions/17279651/save-a-figure-with-multiple-extensions
+    """
+    fig = plt.gcf()
+    for filetype in types:
+        logger.debug(f"Figure file type: {filetype}")
+        logger.debug(f"Saving figure as {normalize_path(filename)}.{filetype}")
+        fig.savefig(f'{normalize_path(filename)}.{filetype}', dpi=300, bbox_inches='tight')
+
 class RID:
 
     def __init__(self, file_loc, n_divs, threshold):
@@ -127,6 +138,7 @@ class RID:
 
         # Create table with time-averaged power and frequencies
         logger.debug('Creating info table...')
+        global info_table 
         info_table = pd.DataFrame(columns=['freq', 'tavg_power'])
         info_table['freq'] = freqs
         info_table['tavg_power'] = pows_mean
@@ -141,7 +153,7 @@ class RID:
 
         # Split frequency and time-averaged power into n_divs channels
         logger.debug(f'Splitting freq and tavg_power into bins.')
-        freqs = np.array_split(freqs, self.n_divs)
+        freqs_binned = np.array_split(freqs, self.n_divs)
         pows = np.array_split(pows, self.n_divs)
         logger.debug(f'Done.')
 
@@ -164,7 +176,7 @@ class RID:
         """
         logger.debug(f'Ensuring proper order of bins.')
         bins = []
-        for chnl in freqs:
+        for chnl in freqs_binned:
             bins.append(chnl[0])
         logger.debug(f'Done.')
 
@@ -184,13 +196,21 @@ class RID:
         (i.e., it contains all of the kurtoses of the high RFI channels)
         """
         logger.debug(f'Making array with only dirty bins.')
+        global flagged_bins
+        global flagged_kurts
+        
         flagged_bins = ma.masked_array(bins, mask=~bin_mask)
+
+        print(f"\n\n\nType of flagged_bins: {type(flagged_bins)}\n\n\n")
+        print(f"Flagged bins: {flagged_bins}")
+
+        
         flagged_kurts = ma.masked_array(exkurts, mask=~bin_mask)
         logger.debug(f'Done.')
         
-        logger.info(f'{ma.count(flagged_bins)} out of {self.n_divs} channels flagged as having substantial RFI')
+        # TODO: Write a quick catch to make sure that if 0 bins were flagged then it just stops :)
 
-        # TODO: Make sure this isn't completely broken!
+        logger.info(f'{ma.count(flagged_bins)} out of {self.n_divs} channels flagged as having substantial RFI')
 
         # Bin width (for the files I am testing this with):
         # There are ~8 Hz in between each entry of freqs, and 32 MHz total
@@ -201,6 +221,7 @@ class RID:
         logger.debug(f'Finding bin width in terms of f.')
         full_freq_range = np.array(info_table['freq'])[-1] - np.array(info_table['freq'])[0]
         # logger.info(f'Calculating exkurt of each bin.')
+        global bin_width
         bin_width = full_freq_range / self.n_divs
         # logger.info(f'Calculating exkurt of each bin.')
         logger.debug(f'Done.')
@@ -209,10 +230,11 @@ class RID:
         logger.debug(f"Bin width in terms of f: {bin_width}")
 
         logger.info(f'Exporting flagged bins to csv...')        
-        # Grab the bin width in terms of the number of elements per bin
-        bin_width_elements = int(np.floor(len(freqs) / self.n_divs))
         
-        masked_freqs = ma.masked_array(freqs)
+        # Grab the bin width in terms of the number of elements per bin
+        # bin_width_elements = int(np.floor(len(freqs) / self.n_divs))
+        
+        # masked_freqs = ma.masked_array(freqs)
 
         # TODO: We just want the high RFI bins to be output, so this can be deleted? :O
         # logger.info(f'Creating array with all of the high RFI bins being masked.')
@@ -258,17 +280,59 @@ class RID:
         t_final = time.time()
         logger.info(f'Done. Total time elapsed: {t_final - t0}')
 
-    def plot_tavg_pwr(self):
-        """This function will plot the time-averaged power spectrum
+    def plot_tavg_pwr(self, output_dest='', output_type=['png'], show_filtered_bins=True):
+        """Plot the time-averaged power spectrum for a given blimpy waterfall object
+        Inputs:
+            output_dest: Location (including filename) to save output file
+            output_type: Filetype of output
         """
-        # TODO: On hold until I figure out how to get the plots working in the vsc interactive window again :(
 
-        info_table = self.intro()
+        logger.info("Plotting time-averaged power spectrum...")
+        # Get frequencies and powers from info_table    
+        wf_name = self.file.split('/')[-1].split('.')[0]
+        # print(wf_name)
+        logger.debug(f"info_table: {type(info_table)}, {info_table}")
 
+        freqs = np.array(info_table['freq'])
+        pows = np.array(info_table['tavg_power'])
+
+        # Plot time-averaged power
         fig, ax = plt.subplots()
-        ax.plot(info_table['freq'], info_table['tavg_power'])
-        plt.show()
+        
+        ax.set_xlim(np.amin(freqs), np.amax(freqs))
+        ax.set_ylim(np.amin(pows), np.amax(pows))
+        
+        ax.set_xlabel('Frequency (MHz)')
+        ax.set_ylabel('Time-Averaged Power (Counts)')
+        ax.set_title(f'Time-Averaged Power Spectrum of\n{wf_name} (n_divs={self.n_divs}, threshold={self.threshold})', y=1.06)
 
+        ax.plot(freqs, pows,
+                label='Time-averaged power spectrum',
+                c='#1f1f1f')
+
+        # Plot frequency bins that were flagged as RFI
+        if show_filtered_bins == True:
+            full_freq_range = freqs[-1] - freqs[0]
+            logger.debug(f"full_freq_range: {full_freq_range}")
+
+            print(f"\n\n\nType of flagged_bins: {type(flagged_bins)} in plot method\n\n\n")
+            print(f"Flagged bins in plot method: {flagged_bins}")
+
+
+            for i, rfi_bin in enumerate(flagged_bins.filled(np.nan)):
+                xmin = rfi_bin
+                xmax = rfi_bin + bin_width
+                flagged_line = plt.axvspan(xmin=xmin, xmax=xmax, ymin=0, ymax=1, color='red', alpha=0.5)
+
+            flagged_line.set_label('Dirty channels')
+            ax.legend(fancybox=True, shadow=True, loc='lower center', bbox_to_anchor=(0.5, 0.91), ncols=1)
+        else:
+            ax.legend(fancybox=True, shadow=True, loc='lower center', bbox_to_anchor=(0.5, 0.91), ncols=1)
+        
+        save_fig(os.path.join(normalize_path(output_dest), f'plot_tavg_power_{wf_name}_{self.n_divs}_{self.threshold}'), types=output_type)
+
+        for filetype in output_type:
+            logger.info(f"tavg_power plot ({filetype}) generated at {os.path.join(normalize_path(output_dest), f'plot_tavg_power_{wf_name}_{n_divs}_{threshold}.{filetype}')}")
 
 if __name__ == "__main__":
     wf_path = normalize_path('/mnt/cosmic-storage-1/data0/jsofair/fil_60288_83463_1613984375_HD_4628_0001-beam0000.fbh5.fil')
@@ -277,6 +341,7 @@ if __name__ == "__main__":
     # print(wf_path)
     
     test.intro()
+    test.plot_tavg_pwr('/home/jsofair/misc_testing', ['png'], True)
     # test.plot_tavg_pwr()
 
     # fig, ax = plt.subplots()

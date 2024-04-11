@@ -200,10 +200,6 @@ class RID:
         global flagged_kurts
         
         flagged_bins = ma.masked_array(bins, mask=~bin_mask)
-
-        print(f"\n\n\nType of flagged_bins: {type(flagged_bins)}\n\n\n")
-        print(f"Flagged bins: {flagged_bins}")
-
         
         flagged_kurts = ma.masked_array(exkurts, mask=~bin_mask)
         logger.debug(f'Done.')
@@ -287,6 +283,7 @@ class RID:
             output_type: Filetype of output
         """
 
+        t1 = time.time()
         logger.info("Plotting time-averaged power spectrum...")
         # Get frequencies and powers from info_table    
         wf_name = self.file.split('/')[-1].split('.')[0]
@@ -315,11 +312,7 @@ class RID:
             full_freq_range = freqs[-1] - freqs[0]
             logger.debug(f"full_freq_range: {full_freq_range}")
 
-            print(f"\n\n\nType of flagged_bins: {type(flagged_bins)} in plot method\n\n\n")
-            print(f"Flagged bins in plot method: {flagged_bins}")
-
-
-            for i, rfi_bin in enumerate(flagged_bins.filled(np.nan)):
+            for rfi_bin in flagged_bins:
                 xmin = rfi_bin
                 xmax = rfi_bin + bin_width
                 flagged_line = plt.axvspan(xmin=xmin, xmax=xmax, ymin=0, ymax=1, color='red', alpha=0.5)
@@ -332,7 +325,10 @@ class RID:
         save_fig(os.path.join(normalize_path(output_dest), f'plot_tavg_power_{wf_name}_{self.n_divs}_{self.threshold}'), types=output_type)
 
         for filetype in output_type:
-            logger.info(f"tavg_power plot ({filetype}) generated at {os.path.join(normalize_path(output_dest), f'plot_tavg_power_{wf_name}_{n_divs}_{threshold}.{filetype}')}")
+            logger.info(f"tavg_power plot ({filetype}) generated at {os.path.join(normalize_path(output_dest), f'plot_tavg_power_{wf_name}_{self.n_divs}_{self.threshold}.{filetype}')}")
+        t_final = time.time()
+        logger.info(f"Time elapsed for plotting: {t_final - t1}")
+
 
 if __name__ == "__main__":
     wf_path = normalize_path('/mnt/cosmic-storage-1/data0/jsofair/fil_60288_83463_1613984375_HD_4628_0001-beam0000.fbh5.fil')

@@ -271,7 +271,7 @@ class RID:
 
         # Write dataframe to csv at export_path
         # TODO: Make sure the output path follows the export path specified by parser
-        export_df.to_csv("/home/jsofair/misc_testing/oop_crickets_output.csv", index=False)
+        export_df.to_csv("/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/oop_crickets_output.csv", index=False)
 
         t_final = time.time()
         logger.info(f'Done. Total time elapsed: {t_final - t0}')
@@ -286,8 +286,7 @@ class RID:
         t1 = time.time()
         logger.info("Plotting time-averaged power spectrum...")
         # Get frequencies and powers from info_table    
-        wf_name = self.file.split('/')[-1].split('.')[0]
-        # print(wf_name)
+        wf_name = self.file[self.file.rfind('/')+1:self.file.rfind('.')]
         logger.debug(f"info_table: {type(info_table)}, {info_table}")
 
         freqs = np.array(info_table['freq'])
@@ -296,8 +295,13 @@ class RID:
         # Plot time-averaged power
         fig, ax = plt.subplots()
         
-        ax.set_xlim(np.amin(freqs), np.amax(freqs))
+        # ax.set_xlim(np.amin(freqs), np.amax(freqs))
+
+        # In case you want to change the frequency range of the plot:
+        ax.set_xlim(np.amin(freqs), 2270)
+
         ax.set_ylim(np.amin(pows), np.amax(pows))
+        ax.set_yscale('log')
         
         ax.set_xlabel('Frequency (MHz)')
         ax.set_ylabel('Time-Averaged Power (Counts)')
@@ -306,6 +310,7 @@ class RID:
         ax.plot(freqs, pows,
                 label='Time-averaged power spectrum',
                 c='#1f1f1f')
+
 
         # Plot frequency bins that were flagged as RFI
         if show_filtered_bins == True:
@@ -331,15 +336,12 @@ class RID:
 
 
 if __name__ == "__main__":
-    wf_path = normalize_path('/mnt/cosmic-storage-1/data0/jsofair/fil_60288_83463_1613984375_HD_4628_0001-beam0000.fbh5.fil')
-    test = RID(wf_path, 256, 1)
+    # wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C0-8Hz-beam0001.fil')
+    # test = RID(wf_path, 256, 1)    
+    # test.intro()
+    # test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing', ['png'], True)
 
-    # print(wf_path)
-    
+    wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C288-8Hz-beam0001.fil')
+    test = RID(wf_path, 256, 5)
     test.intro()
-    test.plot_tavg_pwr('/home/jsofair/misc_testing', ['png'], True)
-    # test.plot_tavg_pwr()
-
-    # fig, ax = plt.subplots()
-    # ax.plot(np.linspace(0,10), np.linspace(10,20))
-    # plt.show()
+    test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/manual_plots', ['png'], True)

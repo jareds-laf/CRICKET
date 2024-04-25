@@ -12,41 +12,41 @@ import numpy.ma as ma
 
 # Setup parser
 
-# parser = argparse.ArgumentParser(
-#                     description='Flag RFI heavy frequency channels based on the excess kurtosis of each channel.')
+parser = argparse.ArgumentParser(
+                    description='Flag RFI heavy frequency channels based on the excess kurtosis of each channel.')
 
-# # Input/analysis arguments
-# parser.add_argument('--input_file',
-# 		    help='(Required) Path to input filterbank file (including file name).', 
-# 			type=str,
-# 			required=True)
-# parser.add_argument('--output_file',
-# 		    help='(Required) Path to output csv file (optionally including file name).',
-# 			type=str,
-# 			required=True)
-# parser.add_argument('--threshold', '-t',
-# 		    help='(Required) Minimum value of excess kurtosis used to flag channels with significant RFI. Can be any decimal number.',
-# 			type=float,
-# 			default=5,
-# 			required=True)
-# parser.add_argument('--ndivs', '-n',
-# 		    help='(Required) Number of frequency bins to split waterfall object into. Can be any integer.',
-# 			type=int,
-# 		    default=256,
-# 			required=True)
+# Input/analysis arguments
+parser.add_argument('--input_file',
+		    help='(Required) Path to input filterbank file (including file name).', 
+			type=str,
+			required=True)
+parser.add_argument('--output_file',
+		    help='(Required) Path to output csv file (optionally including file name).',
+			type=str,
+			required=True)
+parser.add_argument('--threshold', '-t',
+		    help='(Required) Minimum value of excess kurtosis used to flag channels with significant RFI. Can be any decimal number.',
+			type=float,
+			default=5,
+			required=True)
+parser.add_argument('--ndivs', '-n',
+		    help='(Required) Number of frequency bins to split waterfall object into. Can be any integer.',
+			type=int,
+		    default=256,
+			required=True)
 
 # Plotting arguments
 # TODO: Better implementation of the plotting arguments!
-# parser.add_argument('--plot', '-p',
-# 		    help='(Optional) Choose whether or not to generate time-averaged power spectrum and excess kurtosis vs. frequency plots. Give output path for plots here (NOT including file name).',
-# 			# action='store_true',
-# 			type=str,
-# 			required=False)
-# parser.add_argument('--plot_file_types', '--pft',
-# 			help='(Optional, unless -p is given) Output file types (can be pdf, png, and/or jpg). Specify as many of these as you want!',
-# 			choices=['png', 'pdf', 'jpg'],
-# 			nargs='+',
-# 			required=False)
+parser.add_argument('--plot', '-p',
+		    help='(Optional) Choose whether or not to generate time-averaged power spectrum and excess kurtosis vs. frequency plots. Give output path for plots here (NOT including file name).',
+			# action='store_true',
+			type=str,
+			required=False)
+parser.add_argument('--plot_file_types', '--pft',
+			help='(Optional, unless -p is given) Output file types (can be pdf, png, and/or jpg). Specify as many of these as you want!',
+			choices=['png', 'pdf', 'jpg'],
+			nargs='+',
+			required=False)
 # parser.add_argument('-p', '--plot_types',
 # 		    help='(Optional) List of plot types. tavg_pwr: Time-averaged power spectrum. exkurt: Excess kurtosis vs. frequency plot.',
 # 			choices=['exkurt', 'tavg_pwr'],
@@ -65,7 +65,7 @@ import numpy.ma as ma
 # 			action='store_true',
 # 			required=False)
 
-# args = parser.parse_args()
+args = parser.parse_args()
 
 # Set up logger
 logger = logging.getLogger('analysis')
@@ -100,9 +100,9 @@ def save_fig(filename, types=['png']):
 class RID:
 
     def __init__(self, file_loc, n_divs, threshold):
-        self.file = file_loc
-        self.n_divs = n_divs
-        self.threshold = threshold
+        self.file = args.input_file
+        self.n_divs = args.ndivs
+        self.threshold = args.threshold
 
     def intro(self):
         """This function will initialize the Blimpy Waterfall object and 
@@ -116,6 +116,10 @@ class RID:
         ml = calcload.calc_max_load(self.file)
         wf = Waterfall(os.path.normpath(self.file), max_load = ml)
         logger.info(f'Done.')
+
+        # Grab the name of the file for later use
+        global file_name
+        file_name = self.file[self.file.rfind('/')+1:self.file.rfind('.')]
 
         # Get power and frequency in increasing order
         logger.debug('Getting power and frequency in increasing order...')
@@ -271,7 +275,12 @@ class RID:
 
         # Write dataframe to csv at export_path
         # TODO: Make sure the output path follows the export path specified by parser
-        export_df.to_csv("/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/oop_crickets_output.csv", index=False)
+        if os.path.isdir(args.output_file):
+           export_df.to_csv(f"{args.output_file}/crickets_{file_name}_{self.n_divs}_{self.threshold}.csv", index=False)
+           logger.info(f'Exported flagged bins to {args.output_file}/crickets_{file_name}_{self.n_divs}_{self.threshold}.csv')
+        elif os.path.isfile(args.output_file):
+            export_df.to_csv(args.output_file, index=False)
+            logger.info(f'Exported flagged bins to {args.output_file}')
 
         t_final = time.time()
         logger.info(f'Done. Total time elapsed: {t_final - t0}')
@@ -286,7 +295,6 @@ class RID:
         t1 = time.time()
         logger.info("Plotting time-averaged power spectrum...")
         # Get frequencies and powers from info_table    
-        wf_name = self.file[self.file.rfind('/')+1:self.file.rfind('.')]
         logger.debug(f"info_table: {type(info_table)}, {info_table}")
 
         freqs = np.array(info_table['freq'])
@@ -301,11 +309,12 @@ class RID:
         ax.set_xlim(np.amin(freqs), 2270)
 
         ax.set_ylim(np.amin(pows), np.amax(pows))
-        ax.set_yscale('log')
+        # TODO: Make the y-axis actually log10
+        # ax.set_yscale('log')
         
         ax.set_xlabel('Frequency (MHz)')
-        ax.set_ylabel('Time-Averaged Power (Counts)')
-        ax.set_title(f'Time-Averaged Power Spectrum of\n{wf_name} (n_divs={self.n_divs}, threshold={self.threshold})', y=1.06)
+        ax.set_ylabel('Time-Averaged Power (W)')
+        ax.set_title(f'Time-Averaged Power Spectrum of\n{file_name} (n_divs={self.n_divs}, threshold={self.threshold})', y=1.06)
 
         ax.plot(freqs, pows,
                 label='Time-averaged power spectrum',
@@ -327,10 +336,10 @@ class RID:
         else:
             ax.legend(fancybox=True, shadow=True, loc='lower center', bbox_to_anchor=(0.5, 0.91), ncols=1)
         
-        save_fig(os.path.join(normalize_path(output_dest), f'plot_tavg_power_{wf_name}_{self.n_divs}_{self.threshold}'), types=output_type)
+        save_fig(os.path.join(normalize_path(output_dest), f'plot_tavg_power_{file_name}_{self.n_divs}_{self.threshold}'), types=output_type)
 
         for filetype in output_type:
-            logger.info(f"tavg_power plot ({filetype}) generated at {os.path.join(normalize_path(output_dest), f'plot_tavg_power_{wf_name}_{self.n_divs}_{self.threshold}.{filetype}')}")
+            logger.info(f"tavg_power plot ({filetype}) generated at {os.path.join(normalize_path(output_dest), f'plot_tavg_power_{file_name}_{self.n_divs}_{self.threshold}.{filetype}')}")
         t_final = time.time()
         logger.info(f"Time elapsed for plotting: {t_final - t1}")
 
@@ -341,7 +350,7 @@ if __name__ == "__main__":
     # test.intro()
     # test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing', ['png'], True)
 
-    wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C288-8Hz-beam0001.fil')
-    test = RID(wf_path, 256, 5)
+    wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C384-8Hz-beam0001.fil')
+    test = RID(wf_path, 256, 1)
     test.intro()
     test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/manual_plots', ['png'], True)

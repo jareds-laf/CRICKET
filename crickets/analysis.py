@@ -406,7 +406,7 @@ def plot_exkurt(info_table, n_divs=256, threshold=50,
         output_type: Filetype of output
     """
     wf_name = info_table[info_table.rfind('/')+12:-4]
-    bins, kurts, pows_mean, s, flagged_kurts, masked_kurts, masked_freqs, bin_mask, freq_mask = get_exkurt(info_table, n_divs, threshold)
+    bins, exkurts, pows, flagged_bins, flagged_kurts, masked_kurts, masked_freqs, bin_mask, freq_mask = get_exkurt(info_table, n_divs, threshold)
     
     # Create the plot
     fig, ax = plt.subplots()
@@ -416,10 +416,9 @@ def plot_exkurt(info_table, n_divs=256, threshold=50,
     ax.set_ylabel('Excess Kurtosis')
     ax.set_title(f"Excess Kurtosis of\n{wf_name} (n_divs={n_divs}, threshold={threshold})", y=1.06)
 
-
     # Plot all data
     if unfiltered:
-        ax.plot(bins, kurts, 'o', c='black', label='Unfiltered data') # Color is a nice black
+        ax.plot(bins, exkurts, 'o', c='black', label='Unfiltered data') # Color is a nice black
     # Plot the low RFI channels
     if clean_chnls:
         # I use the .filled() method here because sometimes a warning pops up saying that a masked element was converted to a nan.

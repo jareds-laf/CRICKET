@@ -36,7 +36,6 @@ parser.add_argument('--ndivs', '-n',
 			required=True)
 
 # Plotting arguments
-# TODO: Better implementation of the plotting arguments!
 parser.add_argument('--plot', '-p',
 		    help='(Optional) Choose whether or not to generate time-averaged power spectrum and excess kurtosis vs. frequency plots. Give output path for plots here (NOT including file name).',
 			# action='store_true',
@@ -47,40 +46,40 @@ parser.add_argument('--plot_file_types', '--pft',
 			choices=['png', 'pdf', 'jpg'],
 			nargs='+',
 			required=False)
-# parser.add_argument('-p', '--plot_types',
-# 		    help='(Optional) List of plot types. tavg_pwr: Time-averaged power spectrum. exkurt: Excess kurtosis vs. frequency plot.',
-# 			choices=['exkurt', 'tavg_pwr'],
-# 			nargs='+',
-# 			# type=str,
-# 			# default=[None, None],
-# 			required=False)
-# TODO: Figure out how to implement custom plot bounds
-# parser.add_argument('--plot_bnds',
-# 		    help='(Optional) x and y bounds for plots.',
-# 			required=False)
 
 # Miscellaneous arguments
-# parser.add_argument('--verbose', '-v',
-# 		    help='(Optional) Print more information about the input variables and the processes currently running.',
-# 			action='store_true',
-# 			required=False)
+parser.add_argument('--verbose', '-v',
+		    help='(Optional) Print more information about the input variables and the processes currently running.',
+			action='store_true',
+			required=False)
 
 args = parser.parse_args()
 
 # Set up logger
 logger = logging.getLogger('analysis')
+if args.verbose:
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
 
 logger.propagate = False
 ch = logging.StreamHandler()
+if args.verbose:
+    ch.setLevel(logging.DEBUG)
+else:
+    ch.setLevel(logging.INFO)
 
-# Create formatter
+# Create formatter and add to ch
 formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(name)s, %(funcName)s :: line %(lineno)d :: %(message)s')
-
-# Add formatter to ch
 ch.setFormatter(formatter)
 
 # Add ch to logger
 logger.addHandler(ch)
+
+# if args.verbose:
+#     logging.getLogger().setLevel(logging.DEBUG)
+# else:
+#     logging.getLogger().setLevel(logging.INFO)
 
 def normalize_path(in_path):
     # A quick function to ensure that any input paths are properly referenced
@@ -97,7 +96,7 @@ def save_fig(filename, types=['png']):
         logger.debug(f"Saving figure as {normalize_path(filename)}.{filetype}")
         fig.savefig(f'{normalize_path(filename)}.{filetype}', dpi=300, bbox_inches='tight')
 
-class RID:
+class CRICKETS:
 
     def __init__(self, file_loc, n_divs, threshold):
         self.file = args.input_file
@@ -286,7 +285,7 @@ class RID:
         logger.info(f'Done. Total time elapsed: {t_final - t0}')
 
     def plot_tavg_pwr(self, output_dest='', output_type=['png'], show_filtered_bins=True):
-        """Plot the time-averaged power spectrum for a given blimpy waterfall object
+        """Plot the time-averaged power spectrum for a given Blimpy Waterfall object
         Inputs:
             output_dest: Location (including filename) to save output file
             output_type: Filetype of output
@@ -300,23 +299,26 @@ class RID:
         freqs = np.array(info_table['freq'])
         pows = np.array(info_table['tavg_power'])
 
+        log_pows = np.log10(pows)
+        # log_pows = pows
+
         # Plot time-averaged power
         fig, ax = plt.subplots()
         
-        # ax.set_xlim(np.amin(freqs), np.amax(freqs))
+        ax.set_xlim(np.amin(freqs), np.amax(freqs))
 
         # In case you want to change the frequency range of the plot:
-        ax.set_xlim(np.amin(freqs), 2270)
+        # ax.set_xlim(np.amin(freqs), 2270)
 
-        ax.set_ylim(np.amin(pows), np.amax(pows))
+        ax.set_ylim(np.amin(log_pows), np.amax(log_pows))
         # TODO: Make the y-axis actually log10
         # ax.set_yscale('log')
         
         ax.set_xlabel('Frequency (MHz)')
-        ax.set_ylabel('Time-Averaged Power (W)')
+        ax.set_ylabel('log Time-Averaged Power (W)')
         ax.set_title(f'Time-Averaged Power Spectrum of\n{file_name} (n_divs={self.n_divs}, threshold={self.threshold})', y=1.06)
 
-        ax.plot(freqs, pows,
+        ax.plot(freqs, log_pows,
                 label='Time-averaged power spectrum',
                 c='#1f1f1f')
 
@@ -346,11 +348,11 @@ class RID:
 
 if __name__ == "__main__":
     # wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C0-8Hz-beam0001.fil')
-    # test = RID(wf_path, 256, 1)    
+    # test = CRICKETS(wf_path, 256, 1)    
     # test.intro()
     # test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing', ['png'], True)
 
     wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C384-8Hz-beam0001.fil')
-    test = RID(wf_path, 256, 1)
+    test = CRICKETS(wf_path, 256, 1)
     test.intro()
     test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/manual_plots', ['png'], True)

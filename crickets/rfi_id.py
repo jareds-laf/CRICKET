@@ -299,18 +299,19 @@ class CRICKETS:
         freqs = np.array(info_table['freq'])
         pows = np.array(info_table['tavg_power'])
 
-        log_pows = np.log10(pows)
+        # print(f"\n\n\n\nThis is where I am supposed to look: {len(np.where((pows <= 0))[0])})}\n\n\n")
+        # log_pows = np.log10(pows)
         # log_pows = pows
 
         # Plot time-averaged power
         fig, ax = plt.subplots()
         
-        ax.set_xlim(np.amin(freqs), np.amax(freqs))
+        # ax.set_xlim(np.amin(freqs), np.amax(freqs))
 
         # In case you want to change the frequency range of the plot:
         # ax.set_xlim(np.amin(freqs), 2270)
 
-        ax.set_ylim(np.amin(log_pows), np.amax(log_pows))
+        # ax.set_ylim(np.amin(pows), np.amax(pows))
         # TODO: Make the y-axis actually log10
         # ax.set_yscale('log')
         
@@ -318,7 +319,7 @@ class CRICKETS:
         ax.set_ylabel('log Time-Averaged Power (W)')
         ax.set_title(f'Time-Averaged Power Spectrum of\n{file_name} (n_divs={self.n_divs}, threshold={self.threshold})', y=1.06)
 
-        ax.plot(freqs, log_pows,
+        ax.plot(freqs, pows,
                 label='Time-averaged power spectrum',
                 c='#1f1f1f')
 
@@ -352,7 +353,32 @@ if __name__ == "__main__":
     # test.intro()
     # test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing', ['png'], True)
 
-    wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C384-8Hz-beam0001.fil')
-    test = CRICKETS(wf_path, 256, 1)
-    test.intro()
-    test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/manual_plots', ['png'], True)
+    # wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C384-8Hz-beam0001.fil')
+    # test = CRICKETS(wf_path, 256, 1)
+    # test.intro()
+    # test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/manual_plots', ['png'], True)
+
+    print('\n\n\nthis print statement acknowledges were in the spot')
+
+    t_start = time.time()
+    file_path = normalize_path(args.input_file)
+
+    print(f'\n\n\nhere is the file path, as we are in the spot: {file_path}')
+
+
+    cricket = CRICKETS(args.input_file, args.ndivs, args.threshold)
+    print('\n\n\nthis print statement acknowledges were about to crickets.intro()')
+    cricket.intro()
+    
+    print('\n\n\nnow were about to plot')
+
+    if args.plot:
+        cricket.plot_tavg_pwr(output_dest = args.plot,
+                              output_type = args.plot_file_types,
+                              show_filtered_bins = True)
+        # cricket.plot_exkurt(unfiltered = False, clean_chnls = True, rfi = True,
+        #                     output_dest = args.plot,
+        #                     output_type = args.plot_file_types)
+
+    t_end = time.time()
+    logger.info(f'Total time elapsed: {t_end - t_start}')

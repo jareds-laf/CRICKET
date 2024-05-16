@@ -316,7 +316,7 @@ class CRICKETS:
         # ax.set_yscale('log')
         
         ax.set_xlabel('Frequency (MHz)')
-        ax.set_ylabel('log Time-Averaged Power (W)')
+        ax.set_ylabel('Time-Averaged Power (Arbitrary)')
         ax.set_title(f'Time-Averaged Power Spectrum of\n{file_name} (n_divs={self.n_divs}, threshold={self.threshold})', y=1.06)
 
         ax.plot(freqs, pows,

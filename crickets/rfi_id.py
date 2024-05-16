@@ -137,7 +137,8 @@ class CRICKETS:
 
         # Time-average the power
         logger.debug('Time-averaging power...')
-        pows_mean = np.mean(pows, axis=0)[0]
+        logger.debug(f'\n\npows: {np.any(np.isnan(pows))}, {np.any(np.isinf(pows))}\n\n')
+        pows_mean = np.nanmean(pows, axis=0)[0]
         logger.debug('Done.')
 
         # Create table with time-averaged power and frequencies
@@ -167,7 +168,11 @@ class CRICKETS:
         # Rescaling data so that excess kurtosis != inf ever (hopefully)
         logger.debug(f'Rescaling data.')
         for division in pows:
-            exkurts_list.append(kurtosis(division/(10**9)))
+            try:
+                exkurts_list.append(kurtosis(division/(10**9)))
+            except RuntimeWarning:
+                print(f'Runtime warning at this division: {division}')
+                pass
         logger.debug(f'Done.')
 
         global exkurts
@@ -220,12 +225,12 @@ class CRICKETS:
         # If each bin spans 16384 elements, then it spans 125 kHz (125 kHz * 256 = 32 MHz)
         
         # Grab the bin width in terms of MHz (for convenience if needed in the future)
-        # freqs = np.array(info_table['freq'])
-        # pows = np.array(info_table['tavg_power'])
-        # full_freq_range = freqs[-1] - freqs[0]
+        freqs = np.array(info_table['freq'])
+        pows = np.array(info_table['tavg_power'])
+        full_freq_range = freqs[-1] - freqs[0]
 
         # logger.info(f'Calculating exkurt of each bin.')
-        logger.debug(f'Finding bin width in terms of f.')
+        logger.debug(f'Calculating bin width in terms of f.')
 
         global bin_width
         bin_width = full_freq_range / self.n_divs
@@ -282,7 +287,6 @@ class CRICKETS:
         t_taps = time.time()
         logger.info("Plotting time-averaged power spectrum...")
         # Get frequencies and powers from info_table    
-
 
 
         log_pows = np.log10(pows)

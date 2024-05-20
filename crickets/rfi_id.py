@@ -282,7 +282,7 @@ class CRICKETS:
             logger.info(f'Exported flagged bins to {args.output_file}')
 
         t_final = time.time()
-        logger.info(f'Done. Total time elapsed: {t_final - t0}')
+        logger.info(f'Done. Time elapsed for analysis: {t_final - t0}\n\n')
 
     def plot_tavg_pwr(self, output_dest='', output_type=['png'], show_filtered_bins=True):
         """Plot the time-averaged power spectrum for a given Blimpy Waterfall object
@@ -294,7 +294,7 @@ class CRICKETS:
         t1 = time.time()
         logger.info("Plotting time-averaged power spectrum...")
         # Get frequencies and powers from info_table    
-        logger.debug(f"info_table: {type(info_table)}, {info_table}")
+        # logger.warning(f"info_table: {type(info_table)}, {info_table}")
 
         freqs = np.array(info_table['freq'])
         pows = np.array(info_table['tavg_power'])
@@ -352,7 +352,24 @@ if __name__ == "__main__":
     # test.intro()
     # test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing', ['png'], True)
 
-    wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C384-8Hz-beam0001.fil')
-    test = CRICKETS(wf_path, 256, 1)
-    test.intro()
-    test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/manual_plots', ['png'], True)
+    # wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C384-8Hz-beam0001.fil')
+    # test = CRICKETS(wf_path, 256, 1)
+    # test.intro()
+    # test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/manual_plots', ['png'], True)
+
+    t_start = time.time()
+    file_path = normalize_path(args.input_file)
+
+    cricket = CRICKETS(args.input_file, args.ndivs, args.threshold)
+    cricket.intro()
+    
+    if args.plot:
+        cricket.plot_tavg_pwr(output_dest = args.plot,
+                              output_type = args.plot_file_types,
+                              show_filtered_bins = True)
+        # cricket.plot_exkurt(unfiltered = False, clean_chnls = True, rfi = True,
+        #                     output_dest = args.plot,
+        #                     output_type = args.plot_file_types)
+
+    t_end = time.time()
+    logger.info(f'Total time elapsed (analysis and plotting): {t_end - t_start}')

@@ -108,7 +108,7 @@ class CRICKETS:
             generate the info table
         """
         
-        t0 = time.time()
+        t_intro = time.time()
         logger.info('Generating waterfall object...')
         logger.info(f'Reading {self.file}...')
 
@@ -284,8 +284,8 @@ class CRICKETS:
             export_df.to_csv(args.output_file, index=False)
             logger.info(f'Exported flagged bins to {args.output_file}')
 
-        t_final = time.time()
-        logger.info(f'Done. Time elapsed for analysis: {t_final - t0}\n\n')
+        t_final_intro = time.time()
+        logger.info(f'Done. Time elapsed for analysis: {t_final_intro - t_intro}\n\n')
 
     def plot_tavg_pwr(self, output_dest='', output_type=['png'], show_filtered_bins=True):
         """Plot the time-averaged power spectrum for a given Blimpy Waterfall object
@@ -294,7 +294,7 @@ class CRICKETS:
             output_type: Filetype of output
         """
 
-        t1 = time.time()
+        t_taps = time.time()
         logger.info("Plotting time-averaged power spectrum...")
         # Get frequencies and powers from info_table    
         # logger.warning(f'info_table: {type(info_table)}, {info_table}')
@@ -354,8 +354,8 @@ class CRICKETS:
 
         for filetype in output_type:
             logger.info(f"tavg_power plot ({filetype}) generated at {os.path.join(normalize_path(output_dest), f'plot_tavg_power_{file_name}_{self.n_divs}_{self.threshold}.{filetype}')}")
-        t_final = time.time()
-        logger.info(f'Time elapsed for plotting time-averaged power spectrum: {t_final - t1}\n\n')
+        t_final_taps = time.time()
+        logger.info(f'Time elapsed for plotting time-averaged power spectrum: {t_final_taps - t_taps}\n\n')
 
     def plot_exkurt(self, unfiltered=False, clean_chnls=True, rfi=True,
                     output_dest='', output_type=['png']):
@@ -388,7 +388,7 @@ class CRICKETS:
         # Grab the bin width in terms of the number of elements per bin
         bin_width_elements = int(np.floor(len(freqs) / self.n_divs))
 
-        logger.info(f'Creating array with all of the high RFI bins being masked.')
+        logger.debug(f'Creating array with all of the high RFI bins being masked.')
         masked_freqs = ma.masked_array(freqs)
         for rfi_bin in flagged_bins:
             try:
@@ -402,7 +402,7 @@ class CRICKETS:
                 freq_mask = ma.getmask(masked_freqs)
             except:
                 pass
-        logger.info(f'Done.')
+        logger.debug(f'Done.')
 
         # Plot all data
         logger.debug("Plotting all data...")

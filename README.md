@@ -1,22 +1,28 @@
 # CRICKETS
 
-CRICKETS (Categorization of RFI In COSMIC with Kurtosis for Extraterrestrial Searches) is a packaged designed to flag heavy RFI frequency bins in data that comes from [COSMIC](https://science.nrao.edu/facilities/vla/observing/cosmic-seti). This is accomplished by generated a time-averaged power spectrum from an input .fil file and analyzing the excess kurtosis ($exkurt$) of the power in a specified number of frequency bins.
+#### **Please note that this readme is not up-to-date. The instructions on how to use CRICKETS from the command line, in particular, are outdated. However, one should be able to figure out the steps to use it with the command**
+
+```
+python3 [path/to/rfi_id.py] -h
+```
+
+CRICKETS (Categorization of RFI In COSMIC with Kurtosis for Extraterrestrial Searches) is a packaged designed to flag heavy RFI frequency bins in data that comes from [COSMIC](https://science.nrao.edu/facilities/vla/observing/cosmic-seti). This is accomplished by generated a time-averaged power spectrum from an input filterbank or hdf5 file and analyzing the excess kurtosis ($exkurt$) of the time-averaged power in a specified number of frequency bins.
 
 In its current state, this package is **NOT** for differentiating any signals of scientific interest from RFI. Its strength is combing through observations of sources with little to no fine frequency emissions that could be mistaken for RFI. Assuming noise follows a Gaussian distribution, any frequency bins with an excess kurtosis outside of a specifiable range around 0 are likely RFI. With the limitations of this program in mind, the best use of this package is to flag frequency ranges that are heavy in RFI and masking these frequencies after the data from the primary observations have been collected. The package is also effective for studying the overall RFI environment of a series of observations at different times.
 
-*A note on terminology: With the typical (Pearson) definition of kurtosis, a Gaussian distribution has a kurtosis of 3 and an "excess kurtosis" of 0. This package uses the Pearson definition of kurtosis as of July 18th, 2023. There may be some outdated references to "kurtosis" (not excess kurtosis) throughout the code and documentation from the pre-July-18th era when the Fisher definition was used. If you come across any of these instances (other than the name of the repo and package itself), please contact sofairj@lafayette.edu :)*
+*A note on terminology: With the typical (Pearson) definition of kurtosis, a Gaussian distribution has a kurtosis of 3 and an "excess kurtosis" of 0. This package uses the Pearson definition of kurtosis as of July 18th, 2023.*
 
 # Installation:
-As of July 28th, 2023, the package is still a work in progress and it is not entirely functional. Once completed, there will be two primary ways to install the package.
+As of May 20th, 2024, the package is still a work in progress and it is not entirely functional. Once completed, there will be two primary ways to install the package.
 
 ## Dependencies
 The versions of the following required packages shown are simply a snapshot of the versions used in the development of this package. If there are any issues with this package, try installing these specific versions of the code as a troubleshooting step. Otherwise, install any version and the code *shoud* work.
 
 - blimpy==2.1.4
-- matplotlib==3.7.2
-- numpy==1.25.1
-- pandas==2.0.3
-- scipy==1.11.1
+- matplotlib==3.8.1
+- numpy==1.26.2
+- pandas==2.1.2
+- scipy==1.11.3
 
 ## Install by cloning the repository
 Find or create the folder you would like to clone this repository to, then use the following command to clone via HTTPS:

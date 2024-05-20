@@ -92,8 +92,8 @@ def save_fig(filename, types=['png']):
     """
     fig = plt.gcf()
     for filetype in types:
-        logger.debug(f"Figure file type: {filetype}")
-        logger.debug(f"Saving figure as {normalize_path(filename)}.{filetype}")
+        logger.debug(f'Figure file type: {filetype}')
+        logger.debug(f'Saving figure as {normalize_path(filename)}.{filetype}')
         fig.savefig(f'{normalize_path(filename)}.{filetype}', dpi=300, bbox_inches='tight')
 
 class CRICKETS:
@@ -172,6 +172,7 @@ class CRICKETS:
             exkurts_list.append(kurtosis(division/(10**9)))
         logger.debug(f'Done.')
 
+        global exkurts
         exkurts = np.array(exkurts_list, dtype=np.float64)
         # print(f'\n\nHere is the np.abs(exkurts): {np.abs(exkurts)}\n\n')
 
@@ -181,6 +182,8 @@ class CRICKETS:
         then the bin from 2010 MHz to 2011 MHz will have a value of '2010'
         """
         logger.debug(f'Ensuring proper order of bins.')
+
+        global bins
         bins = []
         for chnl in freqs_binned:
             bins.append(chnl[0])
@@ -191,6 +194,7 @@ class CRICKETS:
         
         # masked_kurts is an array that has all channels with |excess kurtosis| > threshold masked out
         logger.debug(f'Getting mask for dirty bins.')
+        global masked_kurts
         masked_kurts = ma.masked_where(np.abs(exkurts) > self.threshold, exkurts)
         bin_mask = ma.getmask(masked_kurts)
         logger.debug(f'Done.')
@@ -228,8 +232,8 @@ class CRICKETS:
         # logger.info(f'Calculating exkurt of each bin.')
         logger.debug(f'Done.')
         
-        logger.debug(f"Full frequency range: {full_freq_range}")
-        logger.debug(f"Bin width in terms of f: {bin_width}")
+        logger.debug(f'Full frequency range: {full_freq_range}')
+        logger.debug(f'Bin width in terms of f: {bin_width}')
 
         logger.info(f'Exporting flagged bins to csv...')        
         
@@ -276,16 +280,15 @@ class CRICKETS:
         export_df = export_concat.sort_values(by=['rfi_bin_bots']).reset_index(drop=True).dropna(how='all')
 
         # Write dataframe to csv at export_path
-        # TODO: Make sure the output path follows the export path specified by parser
         if os.path.isdir(args.output_file):
-           export_df.to_csv(f"{args.output_file}/crickets_{file_name}_{self.n_divs}_{self.threshold}.csv", index=False)
+           export_df.to_csv(f'{args.output_file}/crickets_{file_name}_{self.n_divs}_{self.threshold}.csv', index=False)
            logger.info(f'Exported flagged bins to {args.output_file}/crickets_{file_name}_{self.n_divs}_{self.threshold}.csv')
         elif os.path.isfile(args.output_file):
             export_df.to_csv(args.output_file, index=False)
             logger.info(f'Exported flagged bins to {args.output_file}')
 
         t_final = time.time()
-        logger.info(f'Done. Total time elapsed: {t_final - t0}')
+        logger.info(f'Done. Time elapsed for analysis: {t_final - t0}\n\n')
 
     def plot_tavg_pwr(self, output_dest='', output_type=['png'], show_filtered_bins=True):
         """Plot the time-averaged power spectrum for a given Blimpy Waterfall object
@@ -297,13 +300,12 @@ class CRICKETS:
         t1 = time.time()
         logger.info("Plotting time-averaged power spectrum...")
         # Get frequencies and powers from info_table    
-        logger.debug(f"info_table: {type(info_table)}, {info_table}")
+        # logger.warning(f'info_table: {type(info_table)}, {info_table}')
 
         # freqs = np.array(info_table['freq'])
         # pows = np.array(info_table['tavg_power'])
 
         # log_pows = np.log10(pows)
-        # log_pows = pows
 
         # Plot time-averaged power
         fig, ax = plt.subplots()
@@ -315,8 +317,17 @@ class CRICKETS:
 
         # ax.set_ylim(np.amin(pows), np.amax(pows))
 
-        # ax.set_ylim(np.amin(info_table['tavg_power']), np.amax(info_table['tavg_power']))
-        # TODO: Make the y-axis actually log10...?
+        """I was trying to put this on a log-axis, but it didn't work out
+        It kept telling giving me:
+        ValueError: Axis limits cannot be NaN or Inf
+        
+        Not sure why the limits are NaN or Inf, but I'll just leave it
+        as non-log for now. This might actually have to do with the file I was
+        using:
+
+        TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C224-8Hz-beam0001.fil
+        """
+        ax.set_ylim(np.amin(pows), np.amax(pows))
         # ax.set_yscale('log')
         
         ax.set_xlabel('Frequency (MHz)')
@@ -343,21 +354,111 @@ class CRICKETS:
         else:
             ax.legend(fancybox=True, shadow=True, loc='lower center', bbox_to_anchor=(0.5, 0.91), ncols=1)
         
+        logger.debug(f'tavg_power spectrum output folder: {output_dest}')
         save_fig(os.path.join(normalize_path(output_dest), f'plot_tavg_power_{file_name}_{self.n_divs}_{self.threshold}'), types=output_type)
 
         for filetype in output_type:
             logger.info(f"tavg_power plot ({filetype}) generated at {os.path.join(normalize_path(output_dest), f'plot_tavg_power_{file_name}_{self.n_divs}_{self.threshold}.{filetype}')}")
         t_final = time.time()
-        logger.info(f"Time elapsed for plotting: {t_final - t1}")
+        logger.info(f'Time elapsed for plotting time-averaged power spectrum: {t_final - t1}\n\n')
+
+    def plot_exkurt(self, unfiltered=False, clean_chnls=True, rfi=True,
+                    output_dest='', output_type=['png']):
+        """ This function plots the excess kurtosis of each frequency channel for a
+        specified waterfall object.
+        
+        Inputs:
+            unfiltered: If true, plot the data before RFI filtering has occurred
+            clean_chnls: If true, plot the data after RFI has been filtered out
+            rfi: If true, plot the channels that have been marked as RFI
+            output_dest: Location (including filename) to save output file
+            output_type: File type(s) of output
+        """
+
+
+        t_exkurt = time.time()
+        logger.info("Plotting excess kurtosis vs. frequency...")
+        
+        freqs = np.array(info_table['freq'])
+        pows = np.array(info_table['tavg_power'])
+
+        # Create the plot
+        fig, ax = plt.subplots()
+
+        # plt.figure(figsize=(100, 100))
+        ax.set_xlabel('Frequency (MHz)')
+        ax.set_ylabel('Excess Kurtosis')
+        ax.set_title(f"Excess Kurtosis of\n{file_name} (n_divs={self.n_divs}, threshold={self.threshold})", y=1.06)
+
+        # Grab the bin width in terms of the number of elements per bin
+        bin_width_elements = int(np.floor(len(freqs) / self.n_divs))
+
+        logger.info(f'Creating array with all of the high RFI bins being masked.')
+        masked_freqs = ma.masked_array(freqs)
+        for rfi_bin in flagged_bins:
+            try:
+                # Get the frequency indices of the masked frequency bins and put them in a list
+                xmin = np.where(freqs == rfi_bin)[0][0]
+                xmax = xmin + bin_width_elements
+                masking_indices = np.arange(xmin, xmax)
+
+                # Create a masked array that masks the indices of the high RFI bins
+                masked_freqs[masking_indices] = ma.masked
+                freq_mask = ma.getmask(masked_freqs)
+            except:
+                pass
+        logger.info(f'Done.')
+
+        # Plot all data
+        logger.debug("Plotting all data...")
+        if unfiltered:
+            ax.plot(bins, exkurts, 'o', c='black', label='Unfiltered data') # Color is a nice black
+        logger.debug("Done...")
+
+        # Plot the low RFI channels
+        logger.debug("Plotting clean channels...")
+        if clean_chnls:
+            ax.plot(bins, masked_kurts.filled(np.nan), '.', c='#43cc5c', label='Clean channels') # Color is a nice green
+        logger.debug("Done...")
+
+        # Plot the high RFI channels
+        logger.debug("Plotting dirty channels...")
+        if rfi:
+            ax.plot(flagged_bins, flagged_kurts, '.', c='red', label='Dirty channels') # Color is a nice red
+        logger.debug("Done...")
+
+        ax.set_xlim(np.amin(freqs), np.amax(freqs))
+
+        # logger.debug("Setting excess kurtosis y-axis limits...")
+        # ax.set_ylim(np.amin(exkurts), np.amax(exkurts))
+        # logger.debug("Done...")
+
+        ax.legend(fancybox=True,shadow=True, loc='lower center', bbox_to_anchor=(0.5, 0.95), ncols=3)
+
+        logger.debug(f'exkurt plot output folder: {output_dest}')
+        save_fig(os.path.join(normalize_path(output_dest), f'plot_exkurt_{file_name}_{self.n_divs}_{self.threshold}'), types=output_type)
+
+        for filetype in output_type:
+            logger.info(f"exkurt plot ({filetype}) generated at {os.path.join(normalize_path(output_dest), f'plot_exkurt_{file_name}_{self.n_divs}_{self.threshold}.{filetype}')}")
+
+        t_final_exkurt = time.time()
+        logger.info(f"Time elapsed for plotting excess kurtosis: {t_final_exkurt - t_exkurt}")
 
 
 if __name__ == "__main__":
-    # wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C0-8Hz-beam0001.fil')
-    # test = CRICKETS(wf_path, 256, 1)    
-    # test.intro()
-    # test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing', ['png'], True)
+    t_start = time.time()
+    file_path = normalize_path(args.input_file)
 
-    wf_path = normalize_path('/mnt/cosmic-storage-2/data0/sband/TCOS0001_sb43905589_1_1_001.60074.91866136574.3.1.AC.C384-8Hz-beam0001.fil')
-    test = CRICKETS(wf_path, 256, 1)
-    test.intro()
-    test.plot_tavg_pwr('/mnt/cosmic-gpu-1/data0/jsofair/misc_testing/manual_plots', ['png'], True)
+    cricket = CRICKETS(args.input_file, args.ndivs, args.threshold)
+    cricket.intro()
+    
+    if args.plot:
+        cricket.plot_tavg_pwr(output_dest = args.plot,
+                              output_type = args.plot_file_types,
+                              show_filtered_bins = True)
+        cricket.plot_exkurt(unfiltered = False, clean_chnls = True, rfi = True,
+                            output_dest = args.plot,
+                            output_type = args.plot_file_types)
+
+    t_end = time.time()
+    logger.info(f'Total time elapsed (analysis and plotting): {t_end - t_start}')

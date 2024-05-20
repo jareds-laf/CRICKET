@@ -121,9 +121,6 @@ class CRICKETS:
         file_name = self.file[self.file.rfind('/')+1:self.file.rfind('.')]
 
         # Get power and frequency in increasing order
-        global freqs
-        global pows
-
         logger.debug('Getting power and frequency in increasing order...')
         if wf.header['foff'] < 0:
             pows = np.flip(wf.data)
@@ -154,13 +151,13 @@ class CRICKETS:
         """This part of the function will calculate the excess kurtosis of each
         frequency bin
         """
-        # freqs = np.array(info_table['freq'])
-        # pows = np.array(info_table['tavg_power'])
+        freqs = np.array(info_table['freq'])
+        pows = np.array(info_table['tavg_power'])
 
         # Split frequency and time-averaged power into n_divs channels
         logger.debug(f'Splitting freq and tavg_power into bins.')
         freqs_binned = np.array_split(freqs, self.n_divs)
-        pows_binned = np.array_split(pows, self.n_divs)
+        pows = np.array_split(pows, self.n_divs)
         logger.debug(f'Done.')
 
         # Get excess kurtosis of all channels
@@ -168,7 +165,7 @@ class CRICKETS:
 
         # Rescaling data so that excess kurtosis != inf ever (hopefully)
         logger.debug(f'Rescaling data.')
-        for division in pows_binned:
+        for division in pows:
             exkurts_list.append(kurtosis(division/(10**9)))
         logger.debug(f'Done.')
 
@@ -225,7 +222,7 @@ class CRICKETS:
         
         # Grab the bin width in terms of MHz (for convenience if needed in the future)
         logger.debug(f'Finding bin width in terms of f.')
-        full_freq_range = np.array(freqs)[-1] - np.array(pows)[0]
+        full_freq_range = np.array(info_table['freq'])[-1] - np.array(info_table['freq'])[0]
         # logger.info(f'Calculating exkurt of each bin.')
         global bin_width
         bin_width = full_freq_range / self.n_divs
@@ -240,14 +237,14 @@ class CRICKETS:
         # Grab the bin width in terms of the number of elements per bin
         # bin_width_elements = int(np.floor(len(freqs) / self.n_divs))
         
-        # masked_freqs = ma.masked_array(info_table['freq'])
+        # masked_freqs = ma.masked_array(freqs)
 
         # TODO: We just want the high RFI bins to be output, so this can be deleted? :O
         # logger.info(f'Creating array with all of the high RFI bins being masked.')
         # for rfi_bin in flagged_bins:
         #     try:
         #         # Get the frequency indices of the masked frequency bins and put them in a list
-        #         xmin = np.where(info_table['freq'] == rfi_bin)[0][0]
+        #         xmin = np.where(freqs == rfi_bin)[0][0]
         #         xmax = xmin + bin_width_elements
         #         masking_indices = np.arange(xmin, xmax)
                 
@@ -280,7 +277,6 @@ class CRICKETS:
         export_df = export_concat.sort_values(by=['rfi_bin_bots']).reset_index(drop=True).dropna(how='all')
 
         # Write dataframe to csv at export_path
-        # TODO: Make sure the output path follows the export path specified by parser
         if os.path.isdir(args.output_file):
            export_df.to_csv(f'{args.output_file}/crickets_{file_name}_{self.n_divs}_{self.threshold}.csv', index=False)
            logger.info(f'Exported flagged bins to {args.output_file}/crickets_{file_name}_{self.n_divs}_{self.threshold}.csv')
@@ -303,20 +299,18 @@ class CRICKETS:
         # Get frequencies and powers from info_table    
         # logger.warning(f'info_table: {type(info_table)}, {info_table}')
 
-        # freqs = np.array(info_table['freq'])
-        # pows = np.array(info_table['tavg_power'])
+        freqs = np.array(info_table['freq'])
+        pows = np.array(info_table['tavg_power'])
 
         # log_pows = np.log10(pows)
 
         # Plot time-averaged power
         fig, ax = plt.subplots()
-       
-        # ax.set_xlim(np.amin(info_table['freq']), np.amax(info_table['freq']))
+        
+        ax.set_xlim(np.amin(freqs), np.amax(freqs))
 
         # In case you want to change the frequency range of the plot:
-        # ax.set_xlim(np.amin(info_table['freq']), 2270)
-
-        # ax.set_ylim(np.amin(pows), np.amax(pows))
+        # ax.set_xlim(np.amin(freqs), 2270)
 
         """I was trying to put this on a log-axis, but it didn't work out
         It kept telling giving me:
@@ -343,7 +337,7 @@ class CRICKETS:
         # Plot frequency bins that were flagged as RFI
         if show_filtered_bins == True:
             full_freq_range = freqs[-1] - freqs[0]
-            logger.debug(f"full_freq_range (in terms of MHz): {full_freq_range}")
+            logger.debug(f'full_freq_range: {full_freq_range}')
 
             for rfi_bin in flagged_bins:
                 xmin = rfi_bin
@@ -355,6 +349,7 @@ class CRICKETS:
         else:
             ax.legend(fancybox=True, shadow=True, loc='lower center', bbox_to_anchor=(0.5, 0.91), ncols=1)
         
+        logger.debug(f'tavg_power spectrum output folder: {output_dest}')
         save_fig(os.path.join(normalize_path(output_dest), f'plot_tavg_power_{file_name}_{self.n_divs}_{self.threshold}'), types=output_type)
 
         for filetype in output_type:
@@ -435,7 +430,7 @@ class CRICKETS:
 
         ax.legend(fancybox=True,shadow=True, loc='lower center', bbox_to_anchor=(0.5, 0.95), ncols=3)
 
-        logger.debug(f'exkurt plot is the output destination: {output_dest},\n type(output_dest): {type(output_dest)}')
+        logger.debug(f'exkurt plot output folder: {output_dest}')
         save_fig(os.path.join(normalize_path(output_dest), f'plot_exkurt_{file_name}_{self.n_divs}_{self.threshold}'), types=output_type)
 
         for filetype in output_type:

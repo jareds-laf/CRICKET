@@ -277,7 +277,6 @@ class CRICKETS:
         export_df = export_concat.sort_values(by=['rfi_bin_bots']).reset_index(drop=True).dropna(how='all')
 
         # Write dataframe to csv at export_path
-        # TODO: Make sure the output path follows the export path specified by parser
         if os.path.isdir(args.output_file):
            export_df.to_csv(f'{args.output_file}/crickets_{file_name}_{self.n_divs}_{self.threshold}.csv', index=False)
            logger.info(f'Exported flagged bins to {args.output_file}/crickets_{file_name}_{self.n_divs}_{self.threshold}.csv')
@@ -350,6 +349,7 @@ class CRICKETS:
         else:
             ax.legend(fancybox=True, shadow=True, loc='lower center', bbox_to_anchor=(0.5, 0.91), ncols=1)
         
+        logger.debug(f'tavg_power spectrum output folder: {output_dest}')
         save_fig(os.path.join(normalize_path(output_dest), f'plot_tavg_power_{file_name}_{self.n_divs}_{self.threshold}'), types=output_type)
 
         for filetype in output_type:
@@ -430,7 +430,7 @@ class CRICKETS:
 
         ax.legend(fancybox=True,shadow=True, loc='lower center', bbox_to_anchor=(0.5, 0.95), ncols=3)
 
-        logger.debug(f'exkurt plot is the output destination: {output_dest},\n type(output_dest): {type(output_dest)}')
+        logger.debug(f'exkurt plot output folder: {output_dest}')
         save_fig(os.path.join(normalize_path(output_dest), f'plot_exkurt_{file_name}_{self.n_divs}_{self.threshold}'), types=output_type)
 
         for filetype in output_type:

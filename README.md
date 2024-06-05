@@ -49,7 +49,7 @@ Then, the excess kurtosis of each bin is then calculated using [scipy](https://g
 - **rfi_bin_bots**: High RFI frequency bin bottoms
 - **rfi_bin_tops**: High RFI frequency bin tops
 
-[^1]*The minimum threshold to flag high excess kurtosis bins can be specified by the user (default threshold = 5). Flagged bins satisfy this condition:$*
+[^1]: *The minimum threshold to flag high excess kurtosis bins can be specified by the user (default threshold = 5). Flagged bins satisfy this condition:$*
 
 $|exkurt| \geq threshold$
 
